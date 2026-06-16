@@ -39,10 +39,10 @@ Supported directions:
 
 ## Routing
 
-Destination search uses Nominatim. Route generation uses OpenRouteService:
+Destination search uses Nominatim. Route generation uses the OpenRouteService JSON route response for navigation processing:
 
 ```text
-https://api.openrouteservice.org/v2/directions/driving-car/geojson
+https://api.openrouteservice.org/v2/directions/driving-car/json
 ```
 
-The route request uses `[lon, lat]` coordinate order, sends `Accept: application/geo+json`, allows route-point snapping with `radiuses: [-1, -1]`, and refreshes every 25 seconds during navigation.
+The route request uses `[lon, lat]` coordinate order, sends `Accept: application/json`, decodes ORS encoded polyline geometry locally, and refreshes every 25 seconds during navigation.

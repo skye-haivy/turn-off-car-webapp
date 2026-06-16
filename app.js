@@ -1,4 +1,4 @@
-const ROUTE_ENDPOINT = "https://api.openrouteservice.org/v2/directions/driving-car/geojson";
+const ROUTE_ENDPOINT = "https://api.openrouteservice.org/v2/directions/driving-car/json";
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const ROUTE_REFRESH_MS = 25000;
 const ARRIVAL_DISTANCE_M = 35;
@@ -389,13 +389,12 @@ async function refreshRoute() {
       ],
       instructions: true,
       instructions_format: "text",
-      radiuses: [-1, -1],
     };
 
     const response = await fetch(ROUTE_ENDPOINT, {
       method: "POST",
       headers: {
-        "Accept": "application/geo+json",
+        "Accept": "application/json",
         "Authorization": apiKey,
         "Content-Type": "application/json",
       },
@@ -408,7 +407,7 @@ async function refreshRoute() {
     }
 
     const route = await response.json();
-    state.routeFeature = route.features?.[0] || null;
+    state.routeFeature = normalizeRouteResponse(route);
     state.lastRouteUpdate = Date.now();
 
     if (!state.routeFeature) {
@@ -420,6 +419,30 @@ async function refreshRoute() {
   } catch (error) {
     logEvent(`Route generation failed: ${error.message}`);
   }
+}
+
+function normalizeRouteResponse(route) {
+  if (route.features?.[0]) {
+    return route.features[0];
+  }
+
+  const firstRoute = route.routes?.[0];
+  if (!firstRoute) {
+    return null;
+  }
+
+  return {
+    geometry: {
+      coordinates: typeof firstRoute.geometry === "string"
+        ? decodePolyline(firstRoute.geometry)
+        : firstRoute.geometry?.coordinates || [],
+    },
+    properties: {
+      summary: firstRoute.summary,
+      segments: firstRoute.segments || [],
+      way_points: firstRoute.way_points || [],
+    },
+  };
 }
 
 function formatRouteError(status, errorText) {
@@ -500,6 +523,41 @@ function getClosestCoordinateIndex(coordinates) {
   });
 
   return closestIndex;
+}
+
+function decodePolyline(encodedPolyline) {
+  const coordinates = [];
+  let index = 0;
+  let lat = 0;
+  let lon = 0;
+
+  while (index < encodedPolyline.length) {
+    let result = 0;
+    let shift = 0;
+    let byte = null;
+
+    do {
+      byte = encodedPolyline.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+
+    result = 0;
+    shift = 0;
+
+    do {
+      byte = encodedPolyline.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    lon += result & 1 ? ~(result >> 1) : result >> 1;
+    coordinates.push([lon / 1e5, lat / 1e5]);
+  }
+
+  return coordinates;
 }
 
 function parseDirection(instruction) {
