@@ -592,14 +592,7 @@ function normalizeRoadName(name) {
     return "";
   }
 
-  return name
-    .trim()
-    .replaceAll("Đ", "D")
-    .replaceAll("đ", "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "")
-    .replace(/\s+/g, " ");
+  return name.trim().replace(/\s+/g, " ");
 }
 
 async function sendNavigationUpdate(message, force = false) {
