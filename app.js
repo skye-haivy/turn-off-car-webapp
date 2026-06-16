@@ -48,7 +48,7 @@ wireEvents();
 showHostingNotice();
 updateControls();
 startGpsWatch();
-logEvent("Ready. Enter ESP32 IP, API key, and search a driving destination.");
+logEvent("Ready. Enter API key, connect Bluetooth, and search a driving destination.");
 
 function wireEvents() {
   elements.connectButton.addEventListener("click", connectWebSocket);
@@ -84,7 +84,7 @@ function loadSettings() {
 function showHostingNotice() {
   if (elements.httpsNotice && location.protocol === "https:") {
     elements.httpsNotice.hidden = false;
-    logEvent("HTTPS page loaded. Browser may block ws:// ESP32 connections.");
+    logEvent("Hosted page loaded. Use Bluetooth for ESP32 connection.");
   }
 }
 

@@ -21,24 +21,25 @@
 
       <section class="panel setup-panel" aria-labelledby="setupTitle">
         <h2 id="setupTitle">Connection</h2>
-        <div class="field-grid">
+        <label class="field">
+          <span>OpenRouteService API Key</span>
+          <input id="apiKey" type="password" autocomplete="off" placeholder="Paste API key">
+        </label>
+        <div class="button-row">
+          <button class="primary" id="bleConnectButton" type="button">Connect Bluetooth</button>
+          <button id="disconnectButton" type="button">Disconnect</button>
+        </div>
+        <p class="notice" id="httpsNotice" hidden>
+          Use Bluetooth for hosted testing. The ESP32 IP is only needed for local HTTP/WebSocket testing.
+        </p>
+        <details class="advanced-panel">
+          <summary>Local WebSocket testing</summary>
           <label class="field">
             <span>ESP32 IP</span>
             <input id="espIp" type="text" inputmode="decimal" autocomplete="off" value="10.42.177.234">
           </label>
-          <label class="field">
-            <span>OpenRouteService API Key</span>
-            <input id="apiKey" type="password" autocomplete="off" placeholder="Paste API key">
-          </label>
-        </div>
-        <div class="button-row">
-          <button class="primary" id="connectButton" type="button">Connect ESP32</button>
-          <button class="primary secondary" id="bleConnectButton" type="button">Connect Bluetooth</button>
-          <button id="disconnectButton" type="button">Disconnect</button>
-        </div>
-        <p class="notice" id="httpsNotice" hidden>
-          GitHub Pages uses HTTPS, so plain ESP32 WebSocket may be blocked. Use Connect Bluetooth for live ESP32 testing from this hosted page.
-        </p>
+          <button id="connectButton" type="button">Connect WebSocket</button>
+        </details>
       </section>
 
       <section class="panel route-panel" aria-labelledby="routeTitle">

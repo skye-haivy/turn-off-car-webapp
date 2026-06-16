@@ -6,7 +6,7 @@ Static phone-first web app for sending car navigation updates to an ESP32 over W
 
 Open `index.html` in a browser, serve this folder with any static file server, or use the hosted GitHub Pages version.
 
-GitHub Pages uses HTTPS. For live ESP32 testing from the hosted page, use `Connect Bluetooth`. Plain `ws://` WebSocket is still available for local HTTP testing.
+GitHub Pages uses HTTPS. For live ESP32 testing from the hosted page, use `Connect Bluetooth`. Plain `ws://` WebSocket is still available under `Local WebSocket testing` for local HTTP testing.
 
 The app stores these values in `localStorage`:
 
