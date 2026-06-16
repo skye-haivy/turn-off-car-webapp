@@ -351,7 +351,8 @@ async function startNavigation() {
   updateControls();
 }
 
-function stopNavigation() {
+async function stopNavigation() {
+  await sendNavigationUpdate({ direction: "START", distance: "--", road: "READY" }, true);
   state.navigating = false;
   clearInterval(state.routeRefreshTimer);
   state.routeRefreshTimer = null;
