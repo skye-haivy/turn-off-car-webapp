@@ -389,12 +389,13 @@ async function refreshRoute() {
       ],
       instructions: true,
       instructions_format: "text",
+      radiuses: [-1, -1],
     };
 
     const response = await fetch(ROUTE_ENDPOINT, {
       method: "POST",
       headers: {
-        "Accept": "application/json",
+        "Accept": "application/geo+json",
         "Authorization": apiKey,
         "Content-Type": "application/json",
       },
@@ -402,7 +403,8 @@ async function refreshRoute() {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouteService returned ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(formatRouteError(response.status, errorText));
     }
 
     const route = await response.json();
@@ -417,6 +419,20 @@ async function refreshRoute() {
     sendCurrentInstruction();
   } catch (error) {
     logEvent(`Route generation failed: ${error.message}`);
+  }
+}
+
+function formatRouteError(status, errorText) {
+  if (!errorText) {
+    return `OpenRouteService returned ${status}`;
+  }
+
+  try {
+    const parsed = JSON.parse(errorText);
+    const message = parsed.error?.message || parsed.message || errorText;
+    return `OpenRouteService returned ${status}: ${message}`;
+  } catch {
+    return `OpenRouteService returned ${status}: ${errorText.slice(0, 180)}`;
   }
 }
 

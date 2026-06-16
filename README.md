@@ -45,4 +45,4 @@ Destination search uses Nominatim. Route generation uses OpenRouteService:
 https://api.openrouteservice.org/v2/directions/driving-car/geojson
 ```
 
-The route request uses `[lon, lat]` coordinate order and refreshes every 25 seconds during navigation.
+The route request uses `[lon, lat]` coordinate order, sends `Accept: application/geo+json`, allows route-point snapping with `radiuses: [-1, -1]`, and refreshes every 25 seconds during navigation.
