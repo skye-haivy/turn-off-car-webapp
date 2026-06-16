@@ -59,6 +59,12 @@ button.primary {
   font-weight: 700;
 }
 
+button.secondary {
+  border-color: rgba(74, 222, 128, 0.45);
+  color: var(--accent);
+  background: rgba(74, 222, 128, 0.12);
+}
+
 input {
   width: 100%;
   min-height: 44px;

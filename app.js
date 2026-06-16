@@ -3,9 +3,12 @@ const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const ROUTE_REFRESH_MS = 25000;
 const ARRIVAL_DISTANCE_M = 35;
 const DEFAULT_ESP32_IP = "10.42.177.234";
+const BLE_SERVICE_UUID = "6f9d0001-7f8a-4a9f-bdd6-4f9ec75d0001";
+const BLE_RX_CHARACTERISTIC_UUID = "6f9d0002-7f8a-4a9f-bdd6-4f9ec75d0001";
 
 const elements = {
   apiKey: document.querySelector("#apiKey"),
+  bleConnectButton: document.querySelector("#bleConnectButton"),
   connectButton: document.querySelector("#connectButton"),
   connectionStatus: document.querySelector("#connectionStatus"),
   destinationQuery: document.querySelector("#destinationQuery"),
@@ -20,10 +23,13 @@ const elements = {
   startButton: document.querySelector("#startButton"),
   stopButton: document.querySelector("#stopButton"),
   suggestions: document.querySelector("#suggestions"),
+  transportStatus: document.querySelector("#transportStatus"),
   httpsNotice: document.querySelector("#httpsNotice"),
 };
 
 const state = {
+  bleCharacteristic: null,
+  bleDevice: null,
   connectionTimer: null,
   connectionTimedOut: false,
   currentLocation: null,
@@ -46,6 +52,7 @@ logEvent("Ready. Enter ESP32 IP, API key, and search a driving destination.");
 
 function wireEvents() {
   elements.connectButton.addEventListener("click", connectWebSocket);
+  elements.bleConnectButton.addEventListener("click", connectBluetooth);
   elements.disconnectButton.addEventListener("click", disconnectWebSocket);
   elements.searchButton.addEventListener("click", searchDestination);
   elements.destinationQuery.addEventListener("keydown", (event) => {
@@ -150,6 +157,44 @@ function connectWebSocket() {
   updateControls();
 }
 
+async function connectBluetooth() {
+  if (!navigator.bluetooth) {
+    setConnectionState("error", "ERROR");
+    logEvent("Web Bluetooth is not available in this browser. Use Android Chrome or local WebSocket.");
+    updateControls();
+    return;
+  }
+
+  try {
+    setConnectionState("connecting", "CONNECTING");
+    logEvent("Select TURN-OFF-CAR from the Bluetooth chooser.");
+
+    state.bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: "TURN-OFF" }],
+      optionalServices: [BLE_SERVICE_UUID],
+    });
+
+    state.bleDevice.addEventListener("gattserverdisconnected", () => {
+      state.bleCharacteristic = null;
+      setConnectionState("disconnected", "DISCONNECTED");
+      updateControls();
+      logEvent("Bluetooth disconnected.");
+    });
+
+    const server = await state.bleDevice.gatt.connect();
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+    state.bleCharacteristic = await service.getCharacteristic(BLE_RX_CHARACTERISTIC_UUID);
+    setConnectionState("connected", "CONNECTED");
+    logEvent(`Bluetooth connected to ${state.bleDevice.name || "ESP32"}.`);
+    updateControls();
+  } catch (error) {
+    state.bleCharacteristic = null;
+    setConnectionState("error", "ERROR");
+    logEvent(`Bluetooth connection failed: ${error.message}`);
+    updateControls();
+  }
+}
+
 function disconnectWebSocket(log = true) {
   clearTimeout(state.connectionTimer);
   state.connectionTimer = null;
@@ -158,6 +203,10 @@ function disconnectWebSocket(log = true) {
     state.ws.close();
     state.ws = null;
   }
+  if (state.bleDevice?.gatt?.connected) {
+    state.bleDevice.gatt.disconnect();
+  }
+  state.bleCharacteristic = null;
   setConnectionState("disconnected", "DISCONNECTED");
   if (log) {
     logEvent("Disconnected from ESP32.");
@@ -168,6 +217,7 @@ function disconnectWebSocket(log = true) {
 function setConnectionState(stateName, label) {
   elements.connectionStatus.dataset.state = stateName;
   elements.connectionStatus.textContent = label;
+  updateTransportStatus();
 }
 
 function startGpsWatch() {
@@ -467,13 +517,26 @@ function normalizeRoadName(name) {
   return typeof name === "string" ? name.trim() : "";
 }
 
-function sendNavigationUpdate(message, force = false) {
+async function sendNavigationUpdate(message, force = false) {
   const payload = JSON.stringify(message);
   elements.nextInstruction.textContent = message.direction;
   elements.distanceStatus.textContent = message.distance;
 
   if (!force && payload === state.lastMessage) {
     return;
+  }
+
+  if (state.bleCharacteristic) {
+    try {
+      await state.bleCharacteristic.writeValue(new TextEncoder().encode(payload));
+      state.lastMessage = payload;
+      logEvent(`Sent BLE ${payload}`);
+      return;
+    } catch (error) {
+      logEvent(`Bluetooth send failed: ${error.message}`);
+      state.bleCharacteristic = null;
+      updateControls();
+    }
   }
 
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
@@ -488,14 +551,32 @@ function sendNavigationUpdate(message, force = false) {
 }
 
 function updateControls() {
-  const connected = state.ws?.readyState === WebSocket.OPEN;
-  elements.disconnectButton.disabled = !state.ws;
+  const connected = isTransportConnected();
+  elements.disconnectButton.disabled = !state.ws && !state.bleCharacteristic;
   elements.startButton.disabled = state.navigating || !state.currentLocation || !state.destination;
   elements.stopButton.disabled = !state.navigating;
+  elements.bleConnectButton.disabled = !navigator.bluetooth;
 
   document.querySelectorAll("[data-test-direction]").forEach((button) => {
     button.disabled = !connected;
   });
+
+  updateTransportStatus();
+}
+
+function isTransportConnected() {
+  return state.ws?.readyState === WebSocket.OPEN || Boolean(state.bleCharacteristic);
+}
+
+function updateTransportStatus() {
+  const transports = [];
+  if (state.ws?.readyState === WebSocket.OPEN) {
+    transports.push("WebSocket");
+  }
+  if (state.bleCharacteristic) {
+    transports.push("Bluetooth");
+  }
+  elements.transportStatus.textContent = transports.length > 0 ? transports.join(" + ") : "None";
 }
 
 function logEvent(message) {

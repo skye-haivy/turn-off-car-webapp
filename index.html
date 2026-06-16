@@ -33,10 +33,11 @@
         </div>
         <div class="button-row">
           <button class="primary" id="connectButton" type="button">Connect ESP32</button>
+          <button class="primary secondary" id="bleConnectButton" type="button">Connect Bluetooth</button>
           <button id="disconnectButton" type="button">Disconnect</button>
         </div>
         <p class="notice" id="httpsNotice" hidden>
-          HTTPS hosting can block plain ESP32 WebSocket connections. If Connect ESP32 fails on GitHub Pages, use the local HTTP URL for live device testing.
+          GitHub Pages uses HTTPS, so plain ESP32 WebSocket may be blocked. Use Connect Bluetooth for live ESP32 testing from this hosted page.
         </p>
       </section>
 
@@ -52,6 +53,10 @@
         <div class="suggestions" id="suggestions" aria-live="polite"></div>
 
         <div class="status-grid">
+          <div>
+            <span class="label">Transport</span>
+            <strong id="transportStatus">None</strong>
+          </div>
           <div>
             <span class="label">GPS</span>
             <strong id="gpsStatus">Waiting</strong>

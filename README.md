@@ -1,10 +1,12 @@
 # TURN-OFF Car Navigation Web App
 
-Static phone-first web app for sending car navigation updates to an ESP32 over WebSocket.
+Static phone-first web app for sending car navigation updates to an ESP32 over WebSocket or Web Bluetooth.
 
 ## Run
 
-Open `index.html` in a browser, or serve this folder with any static file server.
+Open `index.html` in a browser, serve this folder with any static file server, or use the hosted GitHub Pages version.
+
+GitHub Pages uses HTTPS. For live ESP32 testing from the hosted page, use `Connect Bluetooth`. Plain `ws://` WebSocket is still available for local HTTP testing.
 
 The app stores these values in `localStorage`:
 
@@ -13,7 +15,10 @@ The app stores these values in `localStorage`:
 
 ## ESP32 Protocol
 
-The app sends JSON to `ws://<ESP32_IP>:81`:
+The app sends the same JSON over either transport:
+
+- WebSocket: `ws://<ESP32_IP>:81`
+- Web Bluetooth: device name `TURN-OFF-CAR`
 
 ```json
 {
